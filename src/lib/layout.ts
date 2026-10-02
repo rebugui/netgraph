@@ -42,7 +42,26 @@ export function nextDevicePosition(
   segmentId: string | null,
   excludeId?: string,
 ) {
-  if (!segmentId) return { x: 800, y: 600 };
+  if (!segmentId) {
+    const occupied = [
+      ...tab.segments,
+      ...tab.devices
+        .filter((device) => device.segmentId === null && device.id !== excludeId)
+        .map((device) => ({ ...device, w: 140, h: 70 })),
+    ];
+    const x = 800;
+    let y = 600;
+    for (;;) {
+      let nextY = y;
+      for (const box of occupied) {
+        if (x < box.x + box.w + 40 && x + 140 + 40 > box.x &&
+          y < box.y + box.h + 40 && y + 70 + 40 > box.y)
+          nextY = Math.max(nextY, box.y + box.h + 40);
+      }
+      if (nextY === y) return { x, y };
+      y = nextY;
+    }
+  }
   const peers = tab.devices.filter(
     (d) => d.segmentId === segmentId && d.id !== excludeId,
   );

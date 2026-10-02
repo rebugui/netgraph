@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { DiagramTab, Segment } from "../types";
-import { nextSegmentPosition } from "./layout";
+import { nextDevicePosition, nextSegmentPosition } from "./layout";
 
 const segment = (id: string, x: number, y: number, h: number): Segment => ({
   id,
@@ -56,4 +56,31 @@ it("skips manually moved segments and unassigned devices without moving existing
   const next = nextSegmentPosition(moved);
   expect(next.y).toBeGreaterThanOrEqual(2100);
   expect(moved).toEqual(before);
+});
+it("places consecutive unassigned devices outside every existing node with a 40px gap", () => {
+  const crowded: DiagramTab = {
+    ...tab,
+    segments: [segment("block", 790, 760, 300)],
+    devices: [],
+  };
+  const original = structuredClone(crowded);
+  for (let index = 0; index < 3; index++) {
+    const position = nextDevicePosition(crowded, null);
+    for (const box of [
+      ...crowded.segments,
+      ...crowded.devices.filter((device) => device.segmentId === null).map((device) => ({ ...device, w: 140, h: 70 })),
+    ]) {
+      expect(
+        position.x + 140 + 40 <= box.x || box.x + box.w + 40 <= position.x ||
+        position.y + 70 + 40 <= box.y || box.y + box.h + 40 <= position.y,
+      ).toBe(true);
+    }
+    crowded.devices.push({
+      id: `device-${index}`, name: "장비", type: "server", segmentId: null, ...position,
+    });
+  }
+  expect(crowded.segments).toEqual(original.segments);
+  expect(nextDevicePosition(crowded, null, "device-0")).toEqual({
+    x: crowded.devices[0].x, y: crowded.devices[0].y,
+  });
 });

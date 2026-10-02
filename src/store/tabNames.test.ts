@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
+let waitForPendingSaves: (() => Promise<void>) | undefined;
 
 beforeEach(() => {
   vi.resetModules();
@@ -9,11 +10,19 @@ beforeEach(() => {
     removeItem: (k: string) => data.delete(k),
   });
   vi.stubGlobal("window", { localStorage });
+  vi.stubGlobal("navigator", {
+    locks: { request: async (_: string, __: unknown, callback: () => void) => callback() },
+  });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(async () => {
+  await waitForPendingSaves?.();
+  waitForPendingSaves = undefined;
+  vi.unstubAllGlobals();
+});
 
 async function setup() {
   // Import after installing fresh storage so persistence is isolated per test.
+  ({ waitForPendingSaves } = await import("../lib/projectStorage"));
   const { useProjectStore: store } = await import("./useProjectStore");
   store.getState().resetProject(true);
   return store;

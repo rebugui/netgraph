@@ -99,6 +99,7 @@ export function CsvImportModal({ onClose }: { onClose: () => void }) {
           </tbody>
         </table>
       </div>
+      <p className="preview">가져오기를 적용하면 현재 장의 기존 장비와 대역도 자동 배치됩니다. 수동 배치 위치가 바뀝니다.</p>
       <div className="modal-actions">
         <span>
           {result.rows.filter((r) => r.valid).length}개 반영 ·{" "}
@@ -108,6 +109,8 @@ export function CsvImportModal({ onClose }: { onClose: () => void }) {
           className="primary"
           disabled={!result.rows.some((r) => r.valid)}
           onClick={() => {
+            if ((tab.devices.length > 0 || tab.segments.length > 0) &&
+              !confirm("가져오기를 적용하면 현재 장의 기존 장비와 대역도 자동 배치됩니다. 수동 배치 위치가 바뀝니다. 계속할까요?")) return;
             s.updateTab(applyImport(tab, result.rows));
             ui.select(null);
             ui.notify(

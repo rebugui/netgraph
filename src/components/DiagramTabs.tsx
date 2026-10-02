@@ -4,9 +4,11 @@ import { useUiStore } from "../store/useUiStore";
 import { TemplateChoice } from "./TemplateChoice";
 import { Modal } from "./Modal";
 import type { DiagramTab } from "../types";
+import { useCompactLayout } from "../hooks/useCompactLayout";
 export function DiagramTabs() {
   const s = useProjectStore(),
     select = useUiStore((s) => s.select);
+  const compact = useCompactLayout();
   const [adding, setAdding] = useState(false),
     [editing, setEditing] = useState<{
       id: string;
@@ -61,6 +63,10 @@ export function DiagramTabs() {
         >
           ＋
         </button>
+        {compact && <button className="tab-actions" onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          setContext({ id: s.activeTabId, x: rect.left, y: rect.bottom });
+        }}>현재 장 작업</button>}
         <span className="tabs-hint">더블클릭: 이름 · 우클릭: 복제</span>
       </nav>
       {adding && (

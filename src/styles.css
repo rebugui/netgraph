@@ -12,7 +12,7 @@
   --navy: #132e54;
   --blue: #2563eb;
   --line: #dce3ed;
-  --muted: #708097;
+  --muted: #53627a;
 }
 * {
   box-sizing: border-box;
@@ -51,6 +51,14 @@ textarea {
   border-radius: 5px;
   background: white;
   color: inherit;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
 }
 input:focus,
 select:focus,
@@ -96,6 +104,13 @@ h3 {
 .topbar small {
   margin-left: auto;
   color: #b8d5f8;
+}
+.workspace-region {
+  display: contents;
+}
+.mobile-nav,
+.tab-actions {
+  display: none;
 }
 .workspace {
   display: flex;
@@ -379,7 +394,7 @@ summary {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-@media (max-width: 1050px) {
+@media (min-width: 901px) and (max-width: 1050px) {
   .left {
     width: 230px;
   }
@@ -608,7 +623,7 @@ th {
 .tab button span {
   font-size: 10px;
   background: #e3eaf4;
-  color: #5e718f;
+  color: #3f4f6b;
   padding: 2px 5px;
   border-radius: 3px;
   margin-right: 7px;
@@ -625,7 +640,7 @@ th {
 .tabs-hint {
   margin-left: auto;
   white-space: nowrap;
-  color: #8491a4;
+  color: #53627a;
   font-size: 10px;
   padding: 0 10px;
 }
@@ -691,7 +706,51 @@ th {
 .topbar {
   overflow: visible;
 }
-@media (max-width: 1200px) {
+.topbar-main,
+.topbar-actions {
+  display: contents;
+}
+.storage-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: #fff4d7;
+  color: #4c3512;
+  overflow-wrap: anywhere;
+}
+.storage-banner span {
+  flex: 1 1 250px;
+}
+.recovery-screen {
+  min-height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: grid;
+  place-items: center;
+}
+.recovery {
+  width: min(520px, 100%);
+  padding: 24px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.recovery p {
+  margin: 16px 0;
+  line-height: 1.7;
+}
+.recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.recovery :is(button, input, select, textarea):focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+@media (min-width: 901px) and (max-width: 1200px) {
   .top-title,
   .topbar small {
     display: none;
@@ -704,5 +763,184 @@ th {
   }
   .tabs-hint {
     display: none;
+  }
+}
+@media (max-width: 900px) {
+  .app {
+    min-height: 320px;
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .storage-banner {
+    padding: 8px;
+  }
+  .recovery {
+    padding: 16px;
+  }
+  .topbar {
+    height: auto;
+    min-height: 56px;
+    padding: max(8px, env(safe-area-inset-top)) 8px 8px;
+    display: block;
+    position: relative;
+    z-index: 25;
+  }
+  .topbar-main {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .topbar-main b {
+    font-size: 18px;
+    margin-right: auto;
+  }
+  .topbar button,
+  .mobile-nav button,
+  .diagram-tabs button,
+  .app .panel button,
+  .app .modal button,
+  .app .context-menu button,
+  .app .storage-banner button,
+  .app .react-flow__controls-button,
+  .recovery button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .topbar-main button {
+    white-space: normal;
+    padding: 4px 6px;
+  }
+  .topbar-actions {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 100%;
+    max-height: 60dvh;
+    overflow-y: auto;
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+    background: var(--navy);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 8px 20px #0004;
+  }
+  .topbar-actions.collapsed {
+    display: none;
+  }
+  .topbar-actions button {
+    white-space: normal;
+    text-align: left;
+  }
+  .topbar-actions .top-title,
+  .topbar-actions small {
+    display: block;
+    max-width: none;
+    margin: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .export-menu,
+  .dropdown {
+    width: 100%;
+  }
+  .dropdown {
+    position: static;
+    box-shadow: none;
+    margin-top: 4px;
+  }
+  .mobile-nav {
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+    padding: 5px 8px;
+    background: #edf1f7;
+  }
+  .mobile-nav[hidden] {
+    display: none;
+  }
+  .mobile-nav button {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 2px;
+    overflow-wrap: anywhere;
+  }
+  .mobile-nav button[aria-pressed="true"] {
+    background: #e3eaf4;
+    border-color: #53627a;
+  }
+  .workspace {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: block;
+  }
+  .workspace-region {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+  }
+  .workspace-region.inactive {
+    visibility: hidden;
+  }
+  .workspace-region.inactive .react-flow__node {
+    visibility: hidden !important;
+  }
+  .workspace-region > .panel,
+  .workspace-region > .canvas {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .workspace-region > .panel {
+    overflow-y: auto;
+    border: 0;
+  }
+  .diagram-tabs {
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+  }
+  .diagram-tabs .tab-actions {
+    display: block;
+    flex-shrink: 0;
+  }
+  .tabs-hint,
+  .canvas-hint,
+  .react-flow__minimap {
+    display: none;
+  }
+  .app :is(input, select, textarea),
+  .modal :is(input, select, textarea) {
+    font-size: 16px;
+  }
+  .modal {
+    width: calc(100vw - 16px);
+    max-width: none;
+    max-height: calc(100dvh - 16px);
+    padding: 16px;
+    overflow: auto;
+  }
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+  .meta-grid,
+  .template-choices,
+  .form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toast {
+    width: calc(100vw - 16px);
+    bottom: max(8px, env(safe-area-inset-bottom));
+    padding: 10px;
+    overflow-wrap: anywhere;
+    text-align: center;
   }
 }

@@ -7,6 +7,7 @@ import {
   MiniMap,
   ConnectionMode,
   useNodesState,
+  type NodeChange,
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -30,10 +31,15 @@ export function Canvas() {
           ? [active, ...current.filter((n) => n.selected).map((n) => n.id)]
           : [],
       );
-      return source.map((n) => ({
-        ...n,
-        selected: n.selectable !== false && selected.has(n.id),
-      }));
+      const previous = new Map(current.map((node) => [node.id, node]));
+      return source.map((n) => {
+        const prior = previous.get(n.id);
+        return {
+          ...n,
+          measured: prior && prior.type === n.type ? prior.measured : undefined,
+          selected: n.selectable !== false && selected.has(n.id),
+        };
+      });
     });
   }, [source, setNodes]);
   useEffect(() => {
@@ -60,7 +66,32 @@ export function Canvas() {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={(changes: NodeChange[]) => {
+          onNodesChange(changes);
+          const current = useProjectStore.getState();
+          if (current.activeTabId !== tab.id) return;
+          const active = current.tabs.find((item) => item.id === tab.id);
+          if (!active) return;
+          const positions = new Map<string, { x: number; y: number }>();
+          for (const change of changes)
+            if (change.type === "position" && change.dragging === false && change.position !== undefined)
+              positions.set(change.id, change.position);
+          if (!positions.size) return;
+          let changed = false;
+          const devices = active.devices.map((device) => {
+            const position = positions.get(device.id);
+            if (!position || (device.x === position.x && device.y === position.y)) return device;
+            changed = true;
+            return { ...device, x: position.x, y: position.y };
+          });
+          const segments = active.segments.map((segment) => {
+            const position = positions.get(segment.id);
+            if (!position || (segment.x === position.x && segment.y === position.y)) return segment;
+            changed = true;
+            return { ...segment, x: position.x, y: position.y };
+          });
+          if (changed) current.updateTab({ ...active, devices, segments });
+        }}
         connectionMode={ConnectionMode.Loose}
         minZoom={0.08}
         maxZoom={2}
@@ -76,20 +107,6 @@ export function Canvas() {
             redundant: false,
           })
         }
-        onNodeDragStop={(_, __, moved) => {
-          const positions = new Map(moved.map((n) => [n.id, n.position]));
-          state.updateTab({
-            ...tab,
-            devices: tab.devices.map((d) => {
-              const position = positions.get(d.id);
-              return position ? { ...d, ...position } : d;
-            }),
-            segments: tab.segments.map((s) => {
-              const position = positions.get(s.id);
-              return position ? { ...s, ...position } : s;
-            }),
-          });
-        }}
         onNodeClick={(_, n) => ui.select(n.id)}
         onEdgeClick={(_, e) => ui.select(e.id)}
         onPaneClick={() => ui.select(null)}

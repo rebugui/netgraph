@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
+let waitForPendingSaves: (() => Promise<void>) | undefined;
 
 beforeEach(() => {
   vi.resetModules();
@@ -9,10 +10,19 @@ beforeEach(() => {
     removeItem: (k: string) => data.delete(k),
   });
   vi.stubGlobal("window", { localStorage });
+  vi.stubGlobal("navigator", {
+    locks: { request: async (_: string, __: unknown, callback: () => void) => callback() },
+  });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(async () => {
+  await waitForPendingSaves?.();
+  waitForPendingSaves = undefined;
+  vi.unstubAllGlobals();
+});
 async function setup() {
   // Static imports would run before the per-test storage and module reset.
+  // Reload this adapter with the per-test localStorage stub.
+  ({ waitForPendingSaves } = await import("../lib/projectStorage"));
   const { useProjectStore: store } = await import("./useProjectStore");
   store.getState().resetProject(true);
   // Each test needs a fresh subscription and store after installing its storage.
@@ -27,6 +37,7 @@ it("undoes a multi-action deletion atomically and persists the restored graph", 
   store.getState().removeDevice(tab.devices[1].id);
   expect(undo()).toBe(true);
   expect(store.getState().tabs).toEqual(before);
+  await waitForPendingSaves!();
   expect(
     JSON.parse(localStorage.getItem("netgraph-project-v1")!).state.tabs,
   ).toEqual(before);
