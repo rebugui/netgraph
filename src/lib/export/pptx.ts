@@ -77,7 +77,7 @@ export async function exportPptx(project: Project, tabId: string | "all") {
       bw = Math.max(b.w, legend.x + legend.w - b.x),
       bh = Math.max(b.h, legend.y + legend.h - b.y),
       scale = Math.min(12.73 / bw, 5.9 / bh),
-      font = Math.min(10, Math.max(6, Math.round(10 * scale * 96)));
+      font = Math.min(10, 10 * scale * 72);
     const X = (x: number) => 0.3 + (x - b.x) * scale,
       Y = (y: number) => 1.3 + (y - b.y) * scale;
     for (const [i, s] of tab.segments.entries()) {
@@ -131,6 +131,18 @@ export async function exportPptx(project: Project, tabId: string | "all") {
         });
       }
     };
+    const occupied = tab.devices.map((d) => absoluteDevice(d, tab));
+    const labelOffsets = [
+      [0, 0],
+      [0, -20],
+      [0, 20],
+      [-28, 0],
+      [28, 0],
+      [0, -40],
+      [0, 40],
+      [-56, 0],
+      [56, 0],
+    ];
     for (const l of tab.links) {
       const a = endpoint(tab, l.from, l.sourceHandle),
         z = endpoint(tab, l.to, l.targetHandle ?? "top");
@@ -143,18 +155,44 @@ export async function exportPptx(project: Project, tabId: string | "all") {
       ]
         .filter(Boolean)
         .join(" · ");
-      if (label)
+      if (label) {
+        const labelW = Math.min(1.2, Math.max(48, label.length * 10) * scale),
+          labelH = Math.min(0.16, 30 * scale),
+          w = labelW / scale,
+          h = labelH / scale,
+          mx = (a.x + z.x) / 2,
+          my = (a.y + z.y) / 2;
+        const box = { x: mx - w / 2, y: my - h / 2, w, h };
+        for (const [dx, dy] of labelOffsets) {
+          const x = mx + dx - w / 2,
+            y = my + dy - h / 2;
+          if (
+            occupied.every(
+              (other) =>
+                x >= other.x + other.w + 4 ||
+                other.x >= x + w + 4 ||
+                y >= other.y + other.h + 4 ||
+                other.y >= y + h + 4,
+            )
+          ) {
+            box.x = x;
+            box.y = y;
+            break;
+          }
+        }
+        occupied.push(box);
         slide.addText(label, {
-          x: X((a.x + z.x) / 2) - 0.6,
-          y: Y((a.y + z.y) / 2) - 0.08,
-          w: 1.2,
-          h: 0.16,
+          x: X(box.x),
+          y: Y(box.y),
+          w: labelW,
+          h: labelH,
           fontSize: font,
           align: "center",
           fill: { color: "FFFFFF" },
           margin: 0,
           fit: "shrink",
         });
+      }
     }
     for (const d of tab.devices) {
       const box = absoluteDevice(d, tab),
