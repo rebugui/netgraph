@@ -1,5 +1,5 @@
 import PptxGenJS from "pptxgenjs";
-import type { Project, DiagramTab, Link } from "../../types";
+import type { Project, DiagramTab, Link, Segment } from "../../types";
 import { deviceTypes, segmentColors } from "../deviceTypes";
 import { absoluteDevice, contentBounds, legendBox } from "../geometry";
 import { fileName } from "../download";
@@ -34,7 +34,25 @@ export async function exportPptx(project: Project, tabId: string | "all") {
   const tabs =
     tabId === "all" ? project.tabs : project.tabs.filter((t) => t.id === tabId);
   if (!tabs.length) throw new Error("내보낼 장을 찾을 수 없습니다");
-  for (const tab of tabs) {
+  const views: { sourceTab: DiagramTab; tab: DiagramTab; segment: Segment | null }[] =
+    tabs.flatMap((sourceTab) => [
+      { sourceTab, tab: sourceTab, segment: null },
+      ...sourceTab.segments.map((segment) => {
+        const devices = sourceTab.devices.filter((d) => d.segmentId === segment.id),
+          ids = new Set([segment.id, ...devices.map((d) => d.id)]);
+        return {
+          sourceTab,
+          segment,
+          tab: {
+            ...sourceTab,
+            segments: [segment],
+            devices,
+            links: sourceTab.links.filter((l) => ids.has(l.from) && ids.has(l.to)),
+          },
+        };
+      }),
+    ]);
+  for (const { sourceTab, tab, segment } of views) {
     const slide = pptx.addSlide(),
       m = project.meta;
     slide.addText(m.docTitle, {
@@ -49,7 +67,7 @@ export async function exportPptx(project: Project, tabId: string | "all") {
     });
     slide.addTable(
       [
-        ["장 이름", tab.name, "버전", m.version, "작성일", m.date],
+        ["장 이름", segment ? `${tab.name} · ${segment.name} 상세` : tab.name, "버전", m.version, "작성일", m.date],
         [
           "작성자",
           m.author || "—",
@@ -72,22 +90,31 @@ export async function exportPptx(project: Project, tabId: string | "all") {
         colW: [0.8, 4.8, 0.7, 2, 0.8, 3.63],
       },
     );
+    if (segment) {
+      slide.addText(`${segment.name} 상세 · 대역 밖 연결은 전체 구성도 참조`, {
+        x: 0.3, y: 1.12, w: 12.7, h: 0.16,
+        fontSize: 9, color: "53627A", margin: 0,
+      });
+    }
     const b = contentBounds(tab),
-      legend = legendBox(tab),
+      legend = segment
+        ? { ...legendBox(tab), x: b.x + b.w + 40, y: b.y }
+        : legendBox(tab),
       bw = Math.max(b.w, legend.x + legend.w - b.x),
       bh = Math.max(b.h, legend.y + legend.h - b.y),
       scale = Math.min(12.73 / bw, 5.9 / bh),
-      font = Math.min(10, 10 * scale * 72);
-    const X = (x: number) => 0.3 + (x - b.x) * scale,
+      font = Math.min(10, 10 * scale * 72),
+      left = segment ? 0.3 + (12.73 - bw * scale) / 2 : 0.3;
+    const X = (x: number) => left + (x - b.x) * scale,
       Y = (y: number) => 1.3 + (y - b.y) * scale;
-    for (const [i, s] of tab.segments.entries()) {
+    for (const s of tab.segments) {
       slide.addShape(pptx.ShapeType.roundRect, {
         x: X(s.x),
         y: Y(s.y),
         w: s.w * scale,
         h: s.h * scale,
         rectRadius: 0.05,
-        fill: { color: segmentColors[i % segmentColors.length].slice(1) },
+        fill: { color: segmentColors[sourceTab.segments.indexOf(s) % segmentColors.length].slice(1) },
         line: { color: "8BA2BF", width: 0.7 },
       });
       slide.addText(
