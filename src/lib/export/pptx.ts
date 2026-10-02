@@ -158,18 +158,39 @@ export async function exportPptx(project: Project, tabId: string | "all") {
         });
       }
     };
-    const occupied = tab.devices.map((d) => absoluteDevice(d, tab));
-    const labelOffsets = [
-      [0, 0],
-      [0, -20],
-      [0, 20],
-      [-28, 0],
-      [28, 0],
-      [0, -40],
-      [0, 40],
-      [-56, 0],
-      [56, 0],
+    const occupied: { x: number; y: number; w: number; h: number }[] = [
+      ...tab.devices.map((d) => absoluteDevice(d, tab)),
+      { ...legend },
     ];
+    const overlaps = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      margin: number,
+    ) =>
+      occupied.reduce(
+        (sum: number, other: { x: number; y: number; w: number; h: number }) =>
+          sum +
+          Math.max(
+            0,
+            Math.min(x + w, other.x + other.w + margin) -
+              Math.max(x, other.x - margin),
+          ) *
+            Math.max(
+              0,
+              Math.min(y + h, other.y + other.h + margin) -
+                Math.max(y, other.y - margin),
+            ),
+        0,
+      );
+    const labelOffsets = [-132, -112, -84, -56, -28, 0, 28, 56, 84, 112, 132]
+      .flatMap((dx) =>
+        [-120, -100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100, 120].map(
+          (dy) => [dx, dy] as [number, number],
+        ),
+      )
+      .sort((p, q) => Math.abs(p[0]) + Math.abs(p[1]) - Math.abs(q[0]) - Math.abs(q[1]));
     for (const l of tab.links) {
       const a = endpoint(tab, l.from, l.sourceHandle),
         z = endpoint(tab, l.to, l.targetHandle ?? "top");
@@ -190,23 +211,22 @@ export async function exportPptx(project: Project, tabId: string | "all") {
           mx = (a.x + z.x) / 2,
           my = (a.y + z.y) / 2;
         const box = { x: mx - w / 2, y: my - h / 2, w, h };
+        let best = { x: box.x, y: box.y, cost: Infinity };
         for (const [dx, dy] of labelOffsets) {
-          const x = mx + dx - w / 2,
-            y = my + dy - h / 2;
-          if (
-            occupied.every(
-              (other) =>
-                x >= other.x + other.w + 4 ||
-                other.x >= x + w + 4 ||
-                y >= other.y + other.h + 4 ||
-                other.y >= y + h + 4,
-            )
-          ) {
-            box.x = x;
-            box.y = y;
+          const x = Math.max(
+              b.x,
+              Math.min(mx + dx - w / 2, legend.x + legend.w - w),
+            ),
+            y = Math.max(b.y, Math.min(my + dy - h / 2, b.y + bh - h)),
+            cost = overlaps(x, y, w, h, 4);
+          if (cost === 0) {
+            best = { x, y, cost };
             break;
           }
+          if (cost < best.cost) best = { x, y, cost };
         }
+        box.x = best.x;
+        box.y = best.y;
         occupied.push(box);
         slide.addText(label, {
           x: X(box.x),
