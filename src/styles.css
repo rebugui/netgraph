@@ -944,3 +944,9 @@ th {
     text-align: center;
   }
 }
+
+/* 만든 사람 크레딧 — GitHub 링크 */
+.author-credit{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:12px;font-weight:500;color:var(--muted);text-decoration:none;flex-shrink:0}
+.author-credit:hover{color:#3f4f6b}
+.author-credit:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+@media (max-width:900px){.author-credit{margin-left:6px}.author-credit .credit-name{display:none}}
